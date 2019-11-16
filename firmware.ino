@@ -21,45 +21,46 @@
 bool keyboardStatus[40] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 bool controlStatus[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 byte channel = 0;
-byte ChannelCount = 3;
+byte ChannelCount = 1;
 OPL2 opl2;
 LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
-byte OPLFeedback = 0; //0..7
+
+byte OPLFeedback = 0x0; //0..7
 bool OPLSynthType = false; //FM - true/AM - false
 byte OPLNoteOffset = 0; //-127..127
 
-byte CarrierAttack = 0;
-byte CarrierDecay = 0;
-byte CarrierSustain = 0;
-byte CarrierRelease = 0;
+byte CarrierAttack = 0x0A;
+byte CarrierDecay = 0x04;
+byte CarrierSustain = 0x0F;
+byte CarrierRelease = 0x02;
 
-byte CarrierWaveform = 0;
+byte CarrierWaveform = 0x01;
 
 bool CarrierTremolo = false;
 bool CarrierVibrato = false;
-bool CarrierSustainVoice = false;
-bool CarrierEnvelopeScale = false;
+bool CarrierSustainVoice = true;
+bool CarrierEnvelopeScale = true;
 
 byte CarrierLevel = 0;
 byte CarrierFrequencyMultiplication = 0;
 byte CarrierKeyScaleLevel = 0;
 
-byte ModulatorAttack = 0;
-byte ModulatorDecay = 0;
-byte ModulatorSustain = 0;
-byte ModulatorRelease = 0;
+byte ModulatorAttack = 0x0A;
+byte ModulatorDecay = 0x04;
+byte ModulatorSustain = 0x0F;
+byte ModulatorRelease = 0x02;
 
-byte ModulatorWaveform = 0;
+byte ModulatorWaveform = 0x01;
 
 bool ModulatorTremolo = false;
 bool ModulatorVibrato = false;
-bool ModulatorSustainVoice = false;
-bool ModulatorEnvelopeScale = false;
+bool ModulatorSustainVoice = true;
+bool ModulatorEnvelopeScale = true;
 
 byte ModulatorLevel = 0;
 byte ModulatorFrequencyMultiplication = 0;
-byte ModulatorKeyScaleLevel = 0;
+byte ModulatorKeyScaleLevel = 0x01;
 
 byte MenuOption = 0;
 bool OperatorSelect = false; //Carrier - false/Modulator - true
@@ -126,8 +127,8 @@ void control(byte button)
         opl2.setVolume(i,CARRIER, CarrierLevel);
         opl2.setMultiplier(i, CARRIER, CarrierFrequencyMultiplication);
         opl2.setScalingLevel(i, CARRIER, CarrierKeyScaleLevel);
-        break;
       }
+      break;
     }
   }
   lcd.clear();
@@ -203,11 +204,11 @@ void control(byte button)
       lcd.setCursor(7,1);
       if(OPLSynthType)
       {
-        lcd.print(F("FM"));
+        lcd.print(F("AM"));
       }
       else
       {
-        lcd.print(F("AM"));
+        lcd.print(F("FM"));
       }
       lcd.setCursor(11,1);
       lcd.print(OPLNoteOffset);
@@ -856,53 +857,61 @@ void control(byte button)
   }
 }
 
+uint8_t sin1[8]  = 
+{
+  0b00001,
+  0b00011,
+  0b00111,
+  0b00111,
+  0b01111,
+  0b01111,
+  0b01111,
+  0b11111
+};
+uint8_t sin2[8] =
+{
+  0b10000,
+  0b11000,
+  0b11100,
+  0b11100,
+  0b11110,
+  0b11110,
+  0b11110,
+  0b11111  
+};
+uint8_t sin3[8]  = 
+{
+  0b11111,
+  0b01111,
+  0b01111,
+  0b01111,
+  0b00111,
+  0b00111,
+  0b00011,
+  0b00001
+};
+uint8_t sin4[8] =
+{
+  0b11111,
+  0b11110, 
+  0b11110,
+  0b11110,
+  0b11100, 
+  0b11100,
+  0b11000,
+  0b10000
+};
+
 void setup() 
 {
   opl2.init();
-  //opl2.setPercussion(false);
-  for (byte i = 0; i < 6; i ++) {    
-    opl2.setFeedback(i, 0x05);
-    opl2.setSynthMode(i, false);
-    
-    opl2.setAttack    (i, MODULATOR, 0x0A);
-    opl2.setDecay     (i, MODULATOR, 0x04);
-    opl2.setSustain   (i, MODULATOR, 0x0F);
-    opl2.setRelease   (i, MODULATOR, 0x0F);
-    opl2.setAttack    (i, CARRIER, 0x0A);
-    opl2.setDecay     (i, CARRIER, 0x04);
-    opl2.setSustain   (i, CARRIER, 0x0F);
-    opl2.setRelease   (i, CARRIER, 0x0F);
-
-    opl2.setWaveForm(i, MODULATOR, 0x01);
-    opl2.setWaveForm(i, CARRIER, 0x01);
-
-    opl2.setTremolo   (i, MODULATOR, false);
-    opl2.setVibrato   (i, MODULATOR, false);
-    opl2.setMaintainSustain(i, MODULATOR, true);
-    opl2.setEnvelopeScaling(i, MODULATOR, true);
-    opl2.setTremolo   (i, CARRIER, false);
-    opl2.setVibrato   (i, CARRIER, false);
-    opl2.setMaintainSustain(i, CARRIER, true);
-    opl2.setEnvelopeScaling(i, CARRIER, true);
-
-    opl2.setVolume(i,MODULATOR, 0);
-    opl2.setVolume(i,CARRIER, 0);
-    opl2.setMultiplier(i, MODULATOR, 0x00);
-    opl2.setMultiplier(i, CARRIER, 0x00);
-    opl2.setScalingLevel(i, MODULATOR, 0x01);
-    opl2.setScalingLevel(i, CARRIER, 0x00);
-  }
+  opl2.setWaveFormSelect(true);
   lcd.init();                
   lcd.backlight();
-  for(byte j = 0; j < 4; j++)
-  {
-    byte buff[8];
-    for(byte i = 0; i < 8; i++)
-    {
-      buff[i] = EEPROM.read(j*8+i);
-    }
-    lcd.createChar(j, buff);
-  }
+  lcd.createChar(0, sin1);
+  lcd.createChar(1, sin2);
+  lcd.createChar(2, sin3);
+  lcd.createChar(3, sin4);
   lcd.home();
   lcd.clear();
   pinMode(SH_LD, OUTPUT);
@@ -915,6 +924,7 @@ void setup()
   digitalWrite(ce_pin, LOW);
   Serial.begin(9600);
   control(6);
+  control(7);
 }
 
 void loop()
@@ -945,11 +955,11 @@ void loop()
         keyboardStatus[i + j * 8] = digitalRead(SO);
         if(!keyboardStatus[i + j * 8])
         {
-        Serial.print('N');
-        Serial.println(i + j * 8);
         opl2.playNote(channel, 2 + ((i + j * 8 + 2)/12), (i + j * 8 + 2)%12);
-        //++channel;
-        //channel %= ChannelCount;
+        }
+        else
+        {
+        opl2.setKeyOn(channel, false);
         }
       }
       digitalWrite(CLK, LOW);
@@ -971,10 +981,9 @@ void loop()
         controlStatus[i + j * 8] = digitalRead(SO);
         if(!controlStatus[i + j * 8])
         {
-          Serial.print('C');
-          Serial.println(i + j * 8);
           control(i + j * 8);
-        }
+        }  
+        control(7);
       }
       digitalWrite(CLK, LOW);
       delay(1);
