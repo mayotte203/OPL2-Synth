@@ -20,12 +20,11 @@
 
 bool keyboardStatus[40] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 bool controlStatus[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-byte channel = 0;
-byte ChannelCount = 1;
+byte ChannelCount = 6;
 OPL2 opl2;
 LiquidCrystal_I2C lcd(0x27, 16, 2); 
 
-
+byte counter = 0;
 byte OPLFeedback = 0x0; //0..7
 bool OPLSynthType = false; //FM - true/AM - false
 byte OPLNoteOffset = 0; //-127..127
@@ -65,10 +64,25 @@ byte ModulatorKeyScaleLevel = 0x01;
 byte MenuOption = 0;
 bool OperatorSelect = false; //Carrier - false/Modulator - true
 
+bool MajorChord = false;
+bool MinorChord = false;
+
 void control(byte button)
 {
   switch(button)
   {
+    case 19:
+    {
+      MajorChord = !MajorChord;
+      MinorChord = false; 
+      break;
+    }
+    case 8:
+    {
+      MinorChord = !MinorChord;
+      MajorChord = false;
+      break;
+    }
     case 5:{
       ++MenuOption;
       MenuOption = MenuOption % 5;
@@ -922,10 +936,11 @@ void setup()
   pinMode(clockPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
   digitalWrite(ce_pin, LOW);
-  Serial.begin(9600);
   control(6);
   control(7);
 }
+
+byte playing[6] = {0,0,0,0,0,0};
 
 void loop()
 {
@@ -939,40 +954,71 @@ void loop()
     digitalWrite(latchPin, HIGH);
     digitalWrite(CLK, LOW);   
     digitalWrite(SH_LD, LOW); 
-    delay(5);
     digitalWrite(SH_LD, HIGH);
     for(byte j = 0;j<3;j++)
     {
       digitalWrite(CLK, LOW);
-      delay(1);
       digitalWrite(CLK, HIGH);
-      delay(1);
     }
     for(byte j = 0;j<5;j++)
     {
       if(digitalRead(SO) != keyboardStatus[i + j * 8])
       {
         keyboardStatus[i + j * 8] = digitalRead(SO);
+        /*
         if(!keyboardStatus[i + j * 8])
         {
-        opl2.playNote(channel, 2 + ((i + j * 8 + 2)/12), (i + j * 8 + 2)%12);
+          opl2.playNote(0, 2 + ((i + j * 8 + 4 + OPLNoteOffset)/12), (i + j * 8 + 4 + OPLNoteOffset)%12);
+          if(MajorChord)
+          {
+            opl2.playNote(1, 2 + ((i + j * 8 + 8 + OPLNoteOffset)/12), (i + j * 8 + 8 + OPLNoteOffset)%12);
+            opl2.playNote(2, 2 + ((i + j * 8 + 12 + OPLNoteOffset)/12), (i + j * 8 + 12 + OPLNoteOffset)%12); 
+          }
+          if(MinorChord)
+          {
+            opl2.playNote(1, 2 + ((i + j * 8 + 7 + OPLNoteOffset)/12), (i + j * 8 + 7 + OPLNoteOffset)%12);
+            opl2.playNote(2, 2 + ((i + j * 8 + 12 + OPLNoteOffset)/12), (i + j * 8 + 12 + OPLNoteOffset)%12);
+          }
         }
         else
         {
-        opl2.setKeyOn(channel, false);
+          opl2.setKeyOn(0, false);
+          opl2.setKeyOn(1, false);
+          opl2.setKeyOn(2, false);
+        }
+        */
+        if(!keyboardStatus[i + j * 8])
+        {
+          for(int z = 0; z < ChannelCount; ++z)
+          {
+            if(playing[z] == 0)
+            {
+              playing[z] = i + j * 8;
+              opl2.playNote(z, 2 + ((i + j * 8 + 4 + OPLNoteOffset)/12), (i + j * 8 + 4 + OPLNoteOffset)%12);
+              z = ChannelCount;
+            }
+          }
+        }
+        else
+        {
+          for(int z = 0; z < ChannelCount; ++z)
+          {
+            if(playing[z] == i + j * 8)
+            {
+              playing[z] = 0;
+              opl2.setKeyOn(z, false);
+              z = ChannelCount;
+            }
+          }
         }
       }
       digitalWrite(CLK, LOW);
-      delay(1);
       digitalWrite(CLK, HIGH);
-      delay(1);
     }
     for(byte j=0;j<4;j++)
     {
       digitalWrite(CLK, LOW);
-      delay(1);
       digitalWrite(CLK, HIGH);
-      delay(1);
     }
     for(byte j=0;j<4;j++)
     {
@@ -986,9 +1032,7 @@ void loop()
         control(7);
       }
       digitalWrite(CLK, LOW);
-      delay(1);
       digitalWrite(CLK, HIGH);
-      delay(1);
     }
   }
 }
